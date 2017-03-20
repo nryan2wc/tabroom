@@ -6,12 +6,12 @@
 # password if it hasn't been already installed.  Adjust below if this squicks
 # you out, but hey, it's only for dev copies, so it shouldn't.
 
-# Tabroom must be installed from /www/tabroom/web; otherwise many more things
-# other than this script will break.
-
 # -- Palmer
 
 # Last updated 7/7/13
+
+ROOT_DIR="/www/tabroom"
+DOMAIN_NAME="local.collegetabroom.com"
 
 echo
 echo "Welcome to the Tabroom.com system installer."
@@ -34,16 +34,18 @@ echo
 echo "Creating the tab database schema and setting permissions..."
 echo
 
+# It should probably be clarified in documentation that -f forces
+# removal of the tabroom database if it already exists.
 /usr/bin/mysqladmin -u root -f drop tabroom
 /usr/bin/mysqladmin -u root create tabroom
-/usr/bin/mysql -u root -f tabroom < /www/tabroom/doc/grant.sql
+/usr/bin/mysql -u root -f tabroom < "$ROOT_DIR/doc/grant.sql"
 
 echo
 echo "Loading the database file (sometimes takes a while, too.)..."
 echo
 
-/usr/bin/mysql -u root tabroom < /www/tabroom/doc/tabroom-schema.sql
-/usr/bin/mysql -u root -f -s tabroom < /www/tabroom/doc/account-create.sql
+/usr/bin/mysql -u root tabroom < "$ROOT_DIR/doc/tabroom-schema.sql"
+/usr/bin/mysql -u root -f -s tabroom < "$ROOT_DIR/doc/account-create.sql"
 
 echo
 echo "Updating the database to the latest version.  Please ignore errors here, there will be some..."
@@ -51,25 +53,26 @@ echo
 
 sleep 2
 
-/usr/bin/mysql -u root -f -s tabroom < /www/tabroom/doc/schema-updates.sql
+/usr/bin/mysql -u root -f -s tabroom < "$ROOT_DIR/doc/schema-updates.sql"
 
-/bin/mkdir -p /www/tabroom/web/tmp
-/bin/mkdir -p /www/tabroom/web/mason
+/bin/mkdir -p "$ROOT_DIR/web/tmp"
+/bin/mkdir -p "$ROOT_DIR/web/mason"
 
-/bin/chmod 1777 /www/tabroom/web/tmp
-/bin/chmod 1777 /www/tabroom/web/mason
+/bin/chmod 1777 "$ROOT_DIR/web/tmp"
+/bin/chmod 1777 "$ROOT_DIR/web/mason"
 
 echo
 echo "Configuring the local Apache webserver..."
 echo
 
-cp /www/tabroom/doc/local.tabroom.com.conf /etc/apache2/sites-available
-cp /www/tabroom/web/lib/Tab/General.pm.default /www/tabroom/web/lib/Tab/General.pm
+cp "$ROOT_DIR/doc/$DOMAIN_NAME.conf" /etc/apache2/sites-available
+cp "$ROOT_DIR/web/lib/Tab/General.pm.default" /www/tabroom/web/lib/Tab/General.pm
 
-echo "ServerName  local.tabroom.com" >> /etc/apache2/conf.d/hostname
-echo "127.0.1.21 local local.tabroom.com" >> /etc/hosts
+echo "ServerName  $DOMAIN_NAME" >> /etc/apache2/conf.d/hostname
+echo "127.0.0.1 local $DOMAIN_NAME" >> /etc/hosts
 
-ln -s /etc/apache2/sites-available/local.tabroom.com.conf /etc/apache2/sites-enabled/0-local.tabroom.conf
+# FIXME: maybe the ".com" should be stripped from the DN in sites-enabled?
+ln -s "/etc/apache2/sites-available/$DOMAIN_NAME.conf" "/etc/apache2/sites-enabled/0-$DOMAIN_NAME.conf"
 
 /usr/sbin/a2enmod apreq
 
@@ -83,6 +86,6 @@ echo
 echo "Yippee.  All done!  Unless, of course, you just saw errors."
 echo
 
-echo "Your tabroom instance is now ready at http://local.tabroom.com."
+echo "Your tabroom instance is now ready at http://$DOMAIN_NAME."
 echo "To connect with other computers will require more technical"
 echo "tweaking.  See the manual in doc/howtos."
